@@ -1,5 +1,6 @@
 import type { NativeProjectFormat, ProjectMetadata } from '../../types/project';
 import type { CADSceneState } from '../../types/cad';
+import type { BIMBuildingModel, DrawingView2D, DocumentSheet } from '../../types/bim';
 
 export const CURRENT_FORMA_VERSION = '1.0.0';
 export const CURRENT_SCHEMA_VERSION = 1;
@@ -11,7 +12,12 @@ export function serializeNativeProject(
   state: CADSceneState,
   metadata: ProjectMetadata,
   cameraPos: [number, number, number] = [15, 12, 18],
-  cameraTarget: [number, number, number] = [0, 4, 0]
+  cameraTarget: [number, number, number] = [0, 4, 0],
+  bim?: {
+    model: BIMBuildingModel;
+    views: DrawingView2D[];
+    sheets: DocumentSheet[];
+  }
 ): NativeProjectFormat {
   return {
     formaVersion: CURRENT_FORMA_VERSION,
@@ -36,6 +42,7 @@ export function serializeNativeProject(
         axesVisible: state.showAxes,
       },
     },
+    ...(bim ? { bim } : {}),
   };
 }
 

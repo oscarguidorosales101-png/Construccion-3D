@@ -17,6 +17,7 @@ import {
   Check,
   HardDrive,
   Cloud,
+  FileText,
 } from 'lucide-react';
 import type { ViewOrientation, RenderShadingMode } from '../../types/cad';
 import type { UserProfile } from '../../types/auth';
@@ -46,7 +47,11 @@ interface NavbarProps {
   onExportGLB: () => void;
   onExportSTL: () => void;
   onExportNative: () => void;
+  onExportPDF: () => void;
+  onExportDXF: () => void;
+  onExportIFC: () => void;
   onImportFile: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onOpenDocumentation: () => void;
   // Navigation & Auth
   onOpenDashboard: () => void;
   currentUser: UserProfile | null;
@@ -76,7 +81,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   onExportGLB,
   onExportSTL,
   onExportNative,
+  onExportPDF,
+  onExportDXF,
+  onExportIFC,
   onImportFile,
+  onOpenDocumentation,
   onOpenDashboard,
   currentUser,
   onOpenAuth,
@@ -280,6 +289,27 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           <Save size={14} />
           <span>{isSaving ? 'Guardando...' : 'Guardar'}</span>
+        </button>
+
+        {/* Planos & Láminas Button */}
+        <button
+          onClick={onOpenDocumentation}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            padding: '5px 10px',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: '12px',
+            fontWeight: 600,
+            backgroundColor: 'rgba(0, 180, 216, 0.15)',
+            color: 'var(--accent-cad)',
+            border: '1px solid rgba(0, 180, 216, 0.3)',
+          }}
+          title="Abrir centro de documentación, planos y láminas"
+        >
+          <FileText size={14} />
+          <span>Planos & Láminas</span>
         </button>
 
         <div style={{ width: '1px', height: '16px', backgroundColor: 'var(--border-subtle)', margin: '0 4px' }} />
@@ -541,6 +571,74 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
                 <span style={{ fontSize: '10px', color: 'var(--accent-cad)' }}>
                   Conserva parámetros, historial y jerarquía
+                </span>
+              </button>
+
+              <div style={{ height: '1px', backgroundColor: 'var(--border-subtle)', margin: '2px 0' }} />
+
+              <button
+                onClick={() => {
+                  onExportPDF();
+                  setShowExportMenu(false);
+                }}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  padding: '6px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  textAlign: 'left',
+                }}
+              >
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#f87171' }}>
+                  Láminas Técnicas PDF (.pdf)
+                </span>
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                  Impresión A0-A4 con cajetín, plantas y escalas
+                </span>
+              </button>
+
+              <button
+                onClick={() => {
+                  onExportDXF();
+                  setShowExportMenu(false);
+                }}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  padding: '6px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  textAlign: 'left',
+                }}
+              >
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent-cad)' }}>
+                  Planos Vectoriales CAD (.dxf)
+                </span>
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                  Capas estándar para AutoCAD y DraftSight
+                </span>
+              </button>
+
+              <button
+                onClick={() => {
+                  onExportIFC();
+                  setShowExportMenu(false);
+                }}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  padding: '6px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  textAlign: 'left',
+                }}
+              >
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent-success)' }}>
+                  Modelo Abierto BIM (.ifc)
+                </span>
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                  Entidades IFC2X3 (Storeys, Walls, Slabs, Cols)
                 </span>
               </button>
 

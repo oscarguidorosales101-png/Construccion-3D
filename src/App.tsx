@@ -14,10 +14,12 @@ import type {
 } from './types/cad';
 import type { NativeProjectFormat, ProjectMetadata } from './types/project';
 import type { UserProfile } from './types/auth';
+import type { BIMBuildingModel, DrawingView2D, DocumentSheet } from './types/bim';
 
 // 3D & Parametric Engine
 import { CADCanvas } from './components/cad/CADCanvas';
 import { generateTankAssembly } from './engine3d/parametric/tankGenerator';
+import { generate30StoryOfficeTower, type Tower30StoryConfig } from './engine3d/bim/towerGenerator';
 import { HistoryManager } from './engine3d/history/historyManager';
 
 // UI Components
@@ -29,90 +31,98 @@ import { ProjectDashboard } from './components/dashboard/ProjectDashboard';
 import { LandingPage } from './components/dashboard/LandingPage';
 import { AuthModal } from './components/auth/AuthModal';
 import { SupabaseSetupGuide } from './components/auth/SupabaseSetupGuide';
+import { DocumentationModal } from './components/bim/documentation/DocumentationModal';
 
 // Services
 import { authService } from './services/supabase/authService';
 import { projectService } from './services/supabase/projectService';
 import { exportSceneToGLTF } from './services/export/gltfExport';
 import { exportSceneToSTL } from './services/export/stlExport';
+import { exportSheetToPDF } from './services/export/pdfExport';
+import { exportViewToDXF } from './services/export/dxfExport';
+import { exportModelToIFC } from './services/export/ifcExport';
 import {
   serializeNativeProject,
   downloadNativeProject,
   deserializeNativeProject,
 } from './services/export/nativeExport';
 
-// Initial Tank Configuration matching API-650 demonstration
-const INITIAL_TANK_PARAMS: TankAssemblyParams = {
-  tag: 'TK-101',
-  diameter: 8.0,
-  totalHeight: 10.0,
-  wallThicknessMm: 8.0,
-  coursesCount: 5,
-  platesPerCourse: 6,
-  bottomPlateThicknessMm: 10.0,
-  bottomAnnularExtension: 0.25,
-  roofType: 'conical',
-  roofSlopePercentage: 8.0,
-  hasWindGirders: true,
-  windGirdersCount: 2,
-  hasRoofHandrail: true,
-  hasSpiralStairs: true,
-  stairWidth: 0.8,
-  stairTurns: 0.75,
-  hasCleanOutDoor: true,
-  nozzles: [
-    {
-      id: 'noz-inlet',
-      name: 'N1 - Entrada de Producto',
-      elevation: 9.0,
-      azimuthDeg: 45,
-      nominalDiameterMm: 200,
-      projectionLength: 0.45,
-      hasFlange: true,
-      type: 'process-nozzle',
-    },
-    {
-      id: 'noz-outlet',
-      name: 'N2 - Salida / Succión',
-      elevation: 0.8,
-      azimuthDeg: 180,
-      nominalDiameterMm: 250,
-      projectionLength: 0.5,
-      hasFlange: true,
-      type: 'process-nozzle',
-    },
-    {
-      id: 'noz-drain',
-      name: 'N3 - Drenaje de Fondo',
-      elevation: 0.3,
-      azimuthDeg: 270,
-      nominalDiameterMm: 100,
-      projectionLength: 0.4,
-      hasFlange: true,
-      type: 'drain',
-    },
-  ],
-};
-
+// Initial Industrial Tank Setup
 function createInitialTankProject(): {
   metadata: ProjectMetadata;
   objects: Record<string, CADObjectNode>;
   rootIds: string[];
 } {
-  const rootId = 'tank-assembly-root';
-  const { nodes } = generateTankAssembly(rootId, INITIAL_TANK_PARAMS, 'mat-steel-carbon');
-
+  const rootId = 'tank-assembly-default';
+  const defaultParams: TankAssemblyParams = {
+    tag: 'TK-101',
+    diameter: 8.0,
+    totalHeight: 10.0,
+    wallThicknessMm: 8.0,
+    coursesCount: 5,
+    platesPerCourse: 6,
+    bottomPlateThicknessMm: 10.0,
+    bottomAnnularExtension: 0.25,
+    roofType: 'conical',
+    roofSlopePercentage: 8.0,
+    hasWindGirders: true,
+    windGirdersCount: 2,
+    hasRoofHandrail: true,
+    hasSpiralStairs: true,
+    stairWidth: 0.8,
+    stairTurns: 0.75,
+    hasCleanOutDoor: true,
+    nozzles: [],
+  };
+  const { nodes } = generateTankAssembly(rootId, defaultParams, 'mat-steel-carbon');
   return {
     metadata: {
-      id: 'project-tank-demo-1',
-      name: 'Tanque Industrial API-650 (TK-101)',
-      description: 'Modelo paramétrico de tanque de almacenamiento con virolas de chapas desfasadas, escalera de caracol y accesorios.',
+      id: 'proj-tank-demo',
+      name: 'Tanque Industrial ASME VIII (Demostración)',
+      projectType: 'tank-industrial',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       version: '1.0.0',
     },
     objects: nodes,
     rootIds: [rootId],
+  };
+}
+
+// Initial 30-Story Office Tower Project Setup
+function createInitialTowerProject(): {
+  metadata: ProjectMetadata;
+  objects: Record<string, CADObjectNode>;
+  rootIds: string[];
+  bimModel: BIMBuildingModel;
+  drawingViews: DrawingView2D[];
+  documentSheets: DocumentSheet[];
+} {
+  const tower = generate30StoryOfficeTower({
+    totalStoreys: 30,
+    floorHeight: 3.6,
+    widthX: 36.0,
+    lengthZ: 30.0,
+    coreWidth: 12.0,
+    coreLength: 10.0,
+    columnSpan: 6.0,
+  });
+
+  return {
+    metadata: {
+      id: 'proj-torre-30p',
+      name: 'Torre de Oficinas Corporativa (30 Pisos)',
+      description: 'Edificio corporativo de 30 niveles con planta de 36x30 m, altura 108 m, losas de hormigón armado, muro cortina y núcleo central.',
+      projectType: 'bim-building',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      version: '1.0.0',
+    },
+    objects: tower.cadNodes,
+    rootIds: tower.rootIds,
+    bimModel: tower.bimModel,
+    drawingViews: tower.drawingViews,
+    documentSheets: tower.documentSheets,
   };
 }
 
@@ -125,13 +135,19 @@ export default function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSetupGuideOpen, setIsSetupGuideOpen] = useState(false);
 
-  // Project State
-  const initialSetup = useRef(createInitialTankProject()).current;
+  // Project State (Defaults to the 30-Story Corporate Office Tower)
+  const [initialSetup] = useState(() => createInitialTowerProject());
   const [currentMetadata, setCurrentMetadata] = useState<ProjectMetadata>(initialSetup.metadata);
   const [projectList, setProjectList] = useState<ProjectMetadata[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+
+  // BIM Building Model & 2D Documentation State
+  const [bimModel, setBimModel] = useState<BIMBuildingModel | null>(initialSetup.bimModel);
+  const [drawingViews, setDrawingViews] = useState<DrawingView2D[]>(initialSetup.drawingViews);
+  const [documentSheets, setDocumentSheets] = useState<DocumentSheet[]>(initialSetup.documentSheets);
+  const [isDocumentationOpen, setIsDocumentationOpen] = useState(false);
 
   // CAD Scene State
   const [objects, setObjects] = useState<Record<string, CADObjectNode>>(initialSetup.objects);
@@ -488,7 +504,20 @@ export default function App() {
   const handleSaveProject = async () => {
     setIsSaving(true);
     const sceneState = getCurrentSceneState();
-    const nativeProject = serializeNativeProject(sceneState, currentMetadata);
+    const bimData = bimModel
+      ? {
+          model: bimModel,
+          views: drawingViews,
+          sheets: documentSheets,
+        }
+      : undefined;
+    const nativeProject = serializeNativeProject(
+      sceneState,
+      currentMetadata,
+      [15, 12, 18],
+      [0, 4, 0],
+      bimData
+    );
 
     const res = await projectService.saveProject(nativeProject, currentUser?.id);
     setIsSaving(false);
@@ -528,8 +557,65 @@ export default function App() {
 
   const handleExportNative = () => {
     const sceneState = getCurrentSceneState();
-    const native = serializeNativeProject(sceneState, currentMetadata);
+    const bimData = bimModel
+      ? {
+          model: bimModel,
+          views: drawingViews,
+          sheets: documentSheets,
+        }
+      : undefined;
+    const native = serializeNativeProject(
+      sceneState,
+      currentMetadata,
+      [15, 12, 18],
+      [0, 4, 0],
+      bimData
+    );
     downloadNativeProject(native);
+  };
+
+  const handleGenerateTower = (config: Tower30StoryConfig) => {
+    recordHistory();
+    const tower = generate30StoryOfficeTower(config);
+    setObjects(tower.cadNodes);
+    setRootIds(tower.rootIds);
+    setBimModel(tower.bimModel);
+    setDrawingViews(tower.drawingViews);
+    setDocumentSheets(tower.documentSheets);
+    setSelectedId(null);
+    setCurrentMetadata((prev) => ({
+      ...prev,
+      projectType: 'bim-building',
+      name: `Torre Corporativa (${config.totalStoreys} Pisos)`,
+      updatedAt: new Date().toISOString(),
+    }));
+    setHasUnsavedChanges(true);
+  };
+
+  const handleExportPDF = () => {
+    if (!bimModel || documentSheets.length === 0) {
+      alert('No hay láminas de documentación disponibles para exportar a PDF.');
+      return;
+    }
+    const sheet = documentSheets[0];
+    exportSheetToPDF(sheet, bimModel, drawingViews, currentMetadata.name);
+  };
+
+  const handleExportDXF = () => {
+    if (!bimModel || !drawingViews || drawingViews.length === 0) {
+      alert('No hay planos 2D disponibles para exportar a DXF.');
+      return;
+    }
+    const view = drawingViews.find((v) => v.type === 'floor-plan' && v.name.includes('Tipo')) || drawingViews[0];
+    exportViewToDXF(view, bimModel, currentMetadata.name);
+  };
+
+  const handleExportIFC = () => {
+    if (!bimModel) {
+      alert('No hay un modelo BIM paramétrico activo para exportar a IFC.');
+      return;
+    }
+    exportModelToIFC(bimModel, currentMetadata.name);
   };
 
   const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -559,37 +645,55 @@ export default function App() {
     setViewOrientation(project.scene.cameraSettings.viewOrientation || 'perspective');
     setShadingMode(project.scene.environment.shadingMode || 'solid');
     setSelectedId(null);
+    if (project.bim) {
+      setBimModel(project.bim.model);
+      setDrawingViews(project.bim.views);
+      setDocumentSheets(project.bim.sheets);
+    } else {
+      setBimModel(null);
+      setDrawingViews([]);
+      setDocumentSheets([]);
+    }
     historyRef.current.clear();
     refreshHistoryFlags();
     setHasUnsavedChanges(false);
     setCurrentView('editor');
   };
 
-  const handleCreateNewProject = (template: 'empty' | 'tank') => {
+  const handleCreateNewProject = (template: 'empty' | 'tank' | 'tower') => {
     historyRef.current.clear();
     refreshHistoryFlags();
 
-    if (template === 'tank') {
-      const setup = createInitialTankProject();
-      setCurrentMetadata({
-        id: `proj-tank-${Date.now()}`,
-        name: `Tanque Industrial TK-${Math.floor(100 + Math.random() * 900)}`,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        version: '1.0.0',
-      });
+    if (template === 'tower') {
+      const setup = createInitialTowerProject();
+      setCurrentMetadata(setup.metadata);
       setObjects(setup.objects);
       setRootIds(setup.rootIds);
+      setBimModel(setup.bimModel);
+      setDrawingViews(setup.drawingViews);
+      setDocumentSheets(setup.documentSheets);
+    } else if (template === 'tank') {
+      const setup = createInitialTankProject();
+      setCurrentMetadata(setup.metadata);
+      setObjects(setup.objects);
+      setRootIds(setup.rootIds);
+      setBimModel(null);
+      setDrawingViews([]);
+      setDocumentSheets([]);
     } else {
       setCurrentMetadata({
         id: `proj-empty-${Date.now()}`,
         name: 'Nuevo Proyecto CAD',
+        projectType: 'free-cad',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         version: '1.0.0',
       });
       setObjects({});
       setRootIds([]);
+      setBimModel(null);
+      setDrawingViews([]);
+      setDocumentSheets([]);
     }
 
     setSelectedId(null);
@@ -705,7 +809,11 @@ export default function App() {
         onExportGLB={handleExportGLB}
         onExportSTL={handleExportSTL}
         onExportNative={handleExportNative}
+        onExportPDF={handleExportPDF}
+        onExportDXF={handleExportDXF}
+        onExportIFC={handleExportIFC}
         onImportFile={handleImportFile}
+        onOpenDocumentation={() => setIsDocumentationOpen(true)}
         onOpenDashboard={() => setCurrentView('dashboard')}
         currentUser={currentUser}
         onOpenAuth={() => setIsAuthOpen(true)}
@@ -721,6 +829,11 @@ export default function App() {
           onSelect={setSelectedId}
           onAddPrimitive={handleAddPrimitive}
           onBuildTank={handleBuildTank}
+          onGenerateTower={handleGenerateTower}
+          onOpenDocumentation={() => setIsDocumentationOpen(true)}
+          onExportPDF={handleExportPDF}
+          onExportDXF={handleExportDXF}
+          onExportIFC={handleExportIFC}
           onToggleVisibility={handleToggleVisibility}
           onToggleLock={handleToggleLock}
           onDeleteObject={handleDeleteObject}
@@ -769,7 +882,18 @@ export default function App() {
         snapToGrid={snapToGrid}
       />
 
-      {/* Auth Modal (Real Supabase Auth) */}
+      {/* BIM Documentation Sheets & Technical Drawings Modal */}
+      {bimModel && (
+        <DocumentationModal
+          isOpen={isDocumentationOpen}
+          onClose={() => setIsDocumentationOpen(false)}
+          model={bimModel}
+          sheets={documentSheets}
+          views={drawingViews}
+        />
+      )}
+
+      {/* Auth Modal (Real Supabase Auth + Local Server Fallback) */}
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}

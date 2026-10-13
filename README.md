@@ -1,201 +1,137 @@
-# FORMA 3D — Plataforma Web de Modelado CAD Paramétrico e Industrial
+# FORMA 3D — Plataforma Web CAD/BIM Paramétrica, Documentación Técnica y Exportación Profesional
 
-Plataforma web independiente de diseño, ingeniería y construcción tridimensional paramétrica inspirada en sistemas CAD industriales y en la fabricación de recipientes y tanques de almacenamiento metálicos (API-650).
+Plataforma web avanzada e independiente de modelado 3D CAD/BIM paramétrico, generación automática de documentación técnica (plantas, secciones, fachadas, cuadros de superficies y láminas de entrega) y exportación profesional multi-formato (`.forma3d`, `GLB`, `STL`, `DXF`, `PDF`, `IFC`).
 
-Desarrollada con **React**, **TypeScript**, **Vite**, **Three.js** y **Supabase**.
-
----
-
-## 1. Visión General del Proyecto
-
-FORMA 3D combina dos paradigmas esenciales de ingeniería:
-1. **Modelado Paramétrico:** Construcción de ensamblajes y geometrías mediante parámetros físicos, dimensiones, restricciones y relaciones dimensionales. La modificación de cotas principales (p. ej. diámetro, altura o número de virolas) recalcula y regenera reactivamente todas las piezas dependientes (virolas, chapas curvadas desfasadas, escalera helicoidal de caracol, techo autoportante, anillos de viento y boquillas con bridas).
-2. **Modelado Libre:** Manipulación interactiva con precisión milimétrica en el espacio 3D (traslación, rotación, escala, duplicación, cambio de visibilidad, bloqueo y eliminación) asistida por gizmos y ajuste magnético (snapping a cuadrícula y ángulos).
+Desarrollada con **React 19**, **TypeScript**, **Vite 8**, **Three.js**, **jsPDF** y un backend local desacoplado persistido en `db.json` con soporte opcional para **Supabase**.
 
 ---
 
-## 2. Tecnologías y Stack Técnico
+## 1. Visión General y Arquitectura
 
-- **Frontend Core:** React 19 + TypeScript (ES2023, strict mode)
-- **Empaquetador & Dev Server:** Vite 8
-- **Motor 3D:** Three.js con integración React Three Fiber (`@react-three/fiber`) y controles de cámara/gizmos (`@react-three/drei`)
-- **Iconografía:** Lucide React
-- **Estilos:** Sistema de diseño CAD Vanilla CSS (paleta grafito/obsidiana con acentos ámbar y cian)
-- **Base de Datos & Auth:** Supabase Auth (correo/contraseña) y Supabase PostgreSQL con Row Level Security (RLS)
-- **Interoperabilidad 3D:** Three.js `GLTFExporter`, `STLExporter` y serializador nativo JSON versionado (`.forma3d`)
-
----
-
-## 3. Arquitectura del Proyecto
-
-```text
-├── supabase/
-│   └── schema.sql                   # Esquema DDL de PostgreSQL y políticas de seguridad RLS
-├── src/
-│   ├── types/
-│   │   ├── cad.ts                   # Tipos de objetos CAD, parámetros, materiales, vistas y transformaciones
-│   │   ├── project.ts               # Estructura del formato nativo versionado (.forma3d)
-│   │   └── auth.ts                  # Perfiles de usuario y estados de autenticación
-│   ├── engine3d/
-│   │   ├── parametric/
-│   │   │   ├── tankGenerator.ts     # Generador procedural del tanque industrial API-650
-│   │   │   └── primitiveGenerators.ts # Generador de BufferGeometry de primitivas CAD
-│   │   ├── materials/
-│   │   │   └── cadMaterials.ts      # Biblioteca de materiales de ingeniería con propiedades PBR y densidad
-│   │   ├── camera/
-│   │   │   └── viewpoints.ts        # Presets de cámara (Perspectiva, Isométrica, Planta, Frontal, Lateral)
-│   │   └── history/
-│   │       └── historyManager.ts    # Historial de comandos Undo / Redo serializable
-│   ├── services/
-│   │   ├── supabase/
-│   │   │   ├── client.ts            # Inicialización con detección de entorno
-│   │   │   ├── authService.ts       # Registro, Login, Recuperación y Sesión con Supabase
-│   │   │   └── projectService.ts    # Persistencia remota en PostgreSQL con fallback a caché local
-│   │   └── export/
-│   │       ├── gltfExport.ts        # Exportador a .glb / .gltf
-│   │       ├── stlExport.ts         # Exportador a .stl para impresión 3D
-│   │       └── nativeExport.ts      # Serializador/Deserializador del formato nativo .forma3d
-│   ├── components/
-│   │   ├── ui/
-│   │   │   ├── Navbar.tsx           # Barra superior con nombre de proyecto, vistas, exportación y sync
-│   │   │   └── Modal.tsx            # Componente modal accesible
-│   │   ├── auth/
-│   │   │   ├── AuthModal.tsx        # Modal de inicio de sesión, registro y restablecimiento de contraseña
-│   │   │   └── SupabaseSetupGuide.tsx # Guía interactiva de configuración de Supabase
-│   │   ├── dashboard/
-│   │   │   ├── ProjectDashboard.tsx # Panel de gestión, búsqueda, duplicación y apertura de proyectos
-│   │   │   └── LandingPage.tsx      # Portada pública de presentación
-│   │   └── cad/
-│   │       ├── CADCanvas.tsx        # Lienzo Three.js/R3F, iluminación de estudio, rejilla y gizmos
-│   │       ├── SceneObjects.tsx     # Renderizador de piezas y despiece de ensamblaje con bordes CAD
-│   │       ├── LeftSidebar/
-│   │       │   ├── LeftPanel.tsx    # Contenedor de herramientas colapsable
-│   │       │   ├── TankBuilderTab.tsx # Controles paramétricos en vivo del tanque
-│   │       │   ├── PrimitivesTab.tsx  # Primitivas industriales (cubo, cilindro, tubo, placa, etc.)
-│   │       │   └── OutlinerTab.tsx    # Árbol jerárquico de componentes (visibilidad, bloqueo, renombrado)
-│   │       ├── RightSidebar/
-│   │       │   ├── RightPanel.tsx   # Contenedor de propiedades colapsable
-│   │       │   ├── TransformInspector.tsx # Inspector de coordenadas X, Y, Z numérico
-│   │       │   ├── ParametricProperties.tsx # Modificación dimensional de piezas seleccionadas
-│   │       │   ├── MaterialPicker.tsx # Selector de materiales y propiedades PBR
-│   │       │   └── EngineeringMetrics.tsx # Cálculo reactivo de volumen, área y peso estimado
-│   │       └── bottom/
-│   │           └── StatusBar.tsx    # Barra de estado inferior con herramientas, snap y unidades
-│   ├── App.tsx                      # Orquestador principal de estado y atajos de teclado
-│   ├── index.css                    # Sistema de diseño CAD oscuro
-│   └── main.tsx                     # Punto de entrada de React
-├── .env.example                     # Plantilla de variables de entorno
-└── package.json
-```
+FORMA 3D respeta la separación estricta de responsabilidades:
+- **BIM & Model Data (`src/types/bim.ts`, `src/types/cad.ts`):** Definición paramétrica de objetos arquitectónicos (niveles, losas, muros, columnas, aberturas, cotas) y ensamblajes industriales independiente del motor gráfico. El modelo de datos es la única fuente de verdad.
+- **Procedural Generators (`src/engine3d/bim/`, `src/engine3d/parametric/`):** Algoritmos que construyen la geometría analítica a partir de parámetros dimensionales reales (sin deformar mallas con `scale`).
+- **Scene Graph Three.js (`src/components/cad/CADCanvas.tsx`):** Renderizado en tiempo real con sombreado de aristas técnicas, iluminación de estudio y gizmos de manipulación.
+- **Motor de Documentación 2D (`src/engine3d/bim/documentationEngine.ts`):** Proyección ortogonal y planos de corte (corte horizontal a 1,20 m, secciones transversales, alzados) y cálculo de cuadros de superficies, materiales y carpinterías.
+- **Centro de Láminas (`src/components/bim/documentation/DocumentationModal.tsx`):** Composición de planos en hojas A0, A1, A2, A3 y A4 con cajetín técnico, escalas normalizadas (1:100, 1:200, 1:50) y notas de proyecto.
+- **Centro de Exportación:** Serializadores especializados e independientes para cada estándar de la industria.
+- **Backend Local (`server/server.js` & `server/db.json`):** Servidor HTTP REST con autenticación basada en sesiones, hashing criptográfico de contraseñas (SHA-256 + salt) y aislamiento estricto de proyectos por usuario.
 
 ---
 
-## 4. Requisitos Previos e Instalación
+## 2. Puesta en Marcha Rápida
 
 ### Requisitos:
 - Node.js versión `>= 18.0.0` (recomendado Node 20 o superior).
 - Gestor de paquetes `npm`.
 
-### Instalación de dependencias:
+### 1. Instalación de dependencias:
 ```bash
 npm install
 ```
 
-### Ejecución en Modo Desarrollo:
+### 2. Ejecutar el Servidor Backend Local (Persistencia y Autenticación con `db.json`):
+En una primera terminal:
+```bash
+npm run server
+```
+*El servidor iniciará en `http://localhost:3001` conectado a `server/db.json`.*
+
+### 3. Ejecutar la Aplicación Web (Frontend Vite):
+En una segunda terminal:
 ```bash
 npm run dev
 ```
-La aplicación estará disponible localmente en `http://127.0.0.1:5173/`.
+*Abre tu navegador en `http://127.0.0.1:5173/`.*
 
-### Compilación para Producción:
+### 4. Compilación y Validación de Tipos para Producción:
 ```bash
 npm run build
 ```
-Genera la carpeta optimizada y minificada `/dist`.
 
 ---
 
-## 5. Configuración de Supabase (Base de Datos & Auth)
+## 3. Plantilla Emblemática: Torre de Oficinas Corporativa (30 Pisos)
 
-FORMA 3D está diseñada para funcionar **inmediatamente de forma local** (con almacenamiento en IndexedDB / LocalStorage) sin bloquear al usuario si Supabase no está configurado.
+Al iniciar la plataforma, FORMA 3D carga automáticamente el modelo paramétrico de demostración técnica:
+- **30 niveles** con altura entre pisos de **3,60 m** (altura total sobre rasante: **108,00 m**).
+- **Planta de referencia:** 36,00 m de ancho $\times$ 30,00 m de fondo (**1.080 m² brutos por nivel**, 32.400 m² construidos totales).
+- **Núcleo central:** Muros de hormigón armado de 12,00 $\times$ 10,00 m que albergan la batería de ascensores, escaleras de evacuación presurizadas y montantes técnicos.
+- **Retícula estructural:** Modulación de pórticos cada **6,00 m** con columnas de hormigón de $80 \times 80\text{ cm}$ en niveles inferiores, adaptándose progresivamente en altura.
+- **Losas de entrepiso:** Hormigón armado de 35 cm de espesor con hueco central coordinado para el núcleo.
+- **Fachada continua:** Muro cortina de vidrio templado reflectivo con montantes de aluminio anodizado.
+- **Podio de acceso:** Vestíbulo de doble altura con marquesina perimetral en voladizo (4,00 m de proyección).
+- **Cubierta técnica:** Parapeto perimetral de seguridad y sala de máquinas de ascensores / climatización.
 
-Para conectar la persistencia en la nube y la autenticación multiusuario:
-
-1. Crea un proyecto en [supabase.com](https://supabase.com).
-2. Ve a **Project Settings → API** y copia la **Project URL** y la clave pública **anon key**.
-3. Crea un archivo `.env` en la raíz del proyecto (basado en `.env.example`):
-   ```env
-   VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
-   VITE_SUPABASE_ANON_KEY=tu-anon-public-key
-   ```
-4. Abre el **SQL Editor** en el panel de Supabase y ejecuta el script contenido en `supabase/schema.sql`.
-
-### Esquema y Políticas RLS implementadas:
-- Tabla `public.projects`: Almacena el identificador UUID, `user_id` del propietario, nombre, descripción, versión y el contenido del modelo JSONB.
-- **Row Level Security (RLS) habilitado:**
-  - `SELECT`: `USING (auth.uid() = user_id)`
-  - `INSERT`: `WITH CHECK (auth.uid() = user_id)`
-  - `UPDATE`: `USING (auth.uid() = user_id)`
-  - `DELETE`: `USING (auth.uid() = user_id)`
-- Los proyectos de un usuario son estrictamente invisibles e inaccesibles para otros usuarios.
+> **Aviso Técnico:** Este modelo es de carácter conceptual y demostrativo de las capacidades CAD/BIM de la plataforma, no apto para construcción sin validación y cálculo de ingeniería profesional colegiada.
 
 ---
 
-## 6. Constructor Paramétrico de Tanques Industriales
+## 4. Documentación Técnica Automática Generada
 
-Inspirado en el video de referencia y estándares industriales (API-650 / API-620), el generador procedural produce:
-1. **Virolas de chapas cilíndricas curvadas:** Diámetro y altura configurables con juntas verticales desfasadas (staggered seams) en cursos alternos.
-2. **Placa anular de fondo:** Base plana con ala anular perimetral sobresaliente.
-3. **Techo:** Opciones de techo cónico autoportante (pendiente configurable), techo domo geodésico o techo abierto.
-4. **Anillos rigidizadores de viento (Wind girders):** Refuerzos anulares horizontales soldados para resistencia a carga de viento.
-5. **Barandilla perimetral de seguridad:** Barandilla tubular de 1050 mm de altura en la corona del techo.
-6. **Escalera helicoidal de caracol:** Trayectoria en espiral externa con peldaños individuales, radio exterior y barandilla tubular.
-7. **Puerta de limpieza / Manhole DN900:** Boca de hombre con proyección y cuello en la base del curso 1.
-8. **Boquillas de proceso (Nozzles):** Boquillas parametrizables en elevación, ángulo azimutal (0-360°) y diámetro nominal con bridas soldadas.
-9. **Cálculo de ingeniería en tiempo real:** Volumen nominal en $m^3$, capacidad en litros, superficie total de chapa en $m^2$ y peso estimado en toneladas según el material asignado.
+Desde el botón **"Planos & Láminas"** de la barra superior o la pestaña **"Torre BIM"** del panel izquierdo, se accede al visor de documentación:
+
+1. **Plantas Arquitectónicas:**
+   - *Planta de Acceso / Nivel 01 (Cota +0.00 m):* Podio, marquesina, atrio principal y control de accesos.
+   - *Planta Tipo Oficinas (Pisos 03 al 30):* Plano de corte horizontal a 1,20 m sobre nivel de losa. Muestra delimitación de muros exteriores, núcleo, retícula de columnas, puertas de núcleo y cotas asociativas perimetrales.
+   - *Planta de Cubierta Técnica (+108.00 m):* Zonas de mantenimiento, pretil y casetón de maquinaria.
+2. **Secciones Verticales:**
+   - *Sección Transversal A-A':* Corte vertical ortogonal a través del núcleo que evidencia las 30 losas, alturas de entrepiso y continuidad estructural.
+3. **Alzados y Fachadas:**
+   - Elevación Principal (Norte), Posterior (Sur), Lateral Este y Lateral Oeste con cotas de nivel y modulación de carpintería.
+4. **Cotas Asociativas:**
+   - Cotas horizontales, verticales y de nivel vinculadas a la geometría; cualquier ajuste en la modulación o altura de plantas actualiza reactivamente los planos.
+5. **Cuadros y Memorias Técnicas:**
+   - **Cuadro de Superficies:** 32.400 m² brutos construidos, 27.660 m² de superficie útil alquilable y 85,4% de eficiencia espacial media.
+   - **Medición de Materiales:** 14.894 m³ de hormigón estructural estimado (~37.235 toneladas), acero corrugado de refuerzo y 14.256 m² de muro cortina.
+   - **Inventario de Carpinterías:** Registro categorizado de puertas dobles de acceso, puertas cortafuegos RF-60 de núcleo y módulos de fachada.
 
 ---
 
-## 7. Formatos de Importación y Exportación
+## 5. Centro de Láminas (Hojas de Documentación)
 
-| Formato | Tipo | Uso principal |
+Permite configurar planos de entrega profesional:
+- **Formatos de papel normalizados:** A0 (1189 $\times$ 841 mm), A1 (841 $\times$ 594 mm), A2, A3 y A4.
+- **Orientación:** Horizontal (Landscape) o Vertical (Portrait).
+- **Cajetín de Ingeniería:** Nombre de proyecto, empresa, autor, fecha, número de plano (p. ej. `ARQ-01`, `ARQ-02`), revisión y escala asignada por vista (1:100, 1:200, 1:50).
+- **Notas Generales y Cuadros:** Incorporación directa de especificaciones constructivas y leyendas normativas.
+
+---
+
+## 6. Formatos de Exportación Implementados y Probados
+
+Cada formato cuenta con su propio exportador analítico probado:
+
+| Formato | Tipo | Alcance e Integración |
 |---|---|---|
-| **.forma3d** | Nativo (JSON versionado) | Conserva la totalidad del árbol paramétrico, dependencias, cotas, historial, materiales y configuración de escena. |
-| **.glb** | Binario glTF 2.0 | Intercambio de geometría, mallas y materiales con Blender, Three.js, visores web y motores gráficos. |
-| **.stl** | Estereolitografía 3D | Fabricación aditiva, prototipado e impresión 3D directa de las mallas. |
+| **`.forma3d`** | Nativo JSON | Guarda la totalidad del proyecto editable: geometría, jerarquía, parámetros BIM, vistas 2D, láminas, cámaras, materiales y metadatos. Permite guardar, cerrar y reabrir sin perder parametrización. |
+| **`GLB`** | glTF 2.0 Binario | Escena 3D optimizada para intercambio con Blender, Unreal Engine, visualizadores web y WebGL. |
+| **`STL`** | Malla Triangulada | Exportación adecuada para impresión 3D aditiva y prototipado rápido físico. |
+| **`DXF`** | Vectorial 2D (ASCII R12/2000) | Planos 2D genuinos organizados en capas estándar AIA (`A-WALL-EXTR`, `A-WALL-CORE`, `A-COLS`, `A-GLAZ`, `A-GRID`, `A-ANNO-DIMS`, `A-TITL`), listos para abrir en AutoCAD, LibreCAD o DraftSight. |
+| **`PDF`** | Vectorial de Impresión | Láminas completas a escala con recuadro perimetral, cajetín técnico, textos legibles, cotas y notas de proyecto generadas con `jspdf`. |
+| **`IFC`** | Open BIM (IFC2X3) | Archivo físico conforme a la norma ISO 10303-21 STEP con jerarquía espacial (`IfcProject` $\rightarrow$ `IfcSite` $\rightarrow$ `IfcBuilding` $\rightarrow$ `IfcBuildingStorey`) y elementos semánticos (`IfcSlab`, `IfcColumn`, `IfcWallStandardCase`). Compatible con Solibri, BIM Vision, Revit y Blender BIM. |
 
 ---
 
-## 8. Atajos de Teclado del Editor CAD
+## 7. Base de Datos Local con `db.json` y Autenticación Segura
 
-- **Ctrl + Z / Cmd + Z:** Deshacer operación
-- **Ctrl + Y / Ctrl + Shift + Z:** Rehacer operación
+El backend desacoplado (`server/server.js`) implementa:
+- **Persistencia en `server/db.json`:** Colecciones para `users`, `projects`, `sessions`, `documents`, `exports` y `settings`.
+- **Criptografía de Contraseñas:** Hashing con **SHA-256** combinando una **sal criptográfica aleatoria única por usuario**. En ningún caso se almacenan ni transmiten contraseñas en texto claro.
+- **Tokens de Sesión:** Emisión de tokens de sesión con revocación en cierre de sesión (`/api/auth/logout`).
+- **Aislamiento Multi-Usuario en Backend:** Cada petición valida el token; los proyectos de un usuario devuelven `403 Forbidden` ante intentos de acceso no autorizado por otros usuarios.
+- **Ruta de Migración:** La interfaz de servicios (`src/services/api/localBackendService.ts` y `src/services/supabase/`) permite pasar fluidamente del entorno de desarrollo local con `db.json` a una base de datos PostgreSQL en producción con Supabase RLS.
+
+---
+
+## 8. Atajos de Teclado del Editor
+
+- **Ctrl + Z / Cmd + Z:** Deshacer (Undo)
+- **Ctrl + Y / Ctrl + Shift + Z:** Rehacer (Redo)
 - **Ctrl + S:** Guardar proyecto
-- **Q:** Herramienta de Selección
-- **W:** Herramienta de Mover (Gizmo de traslación)
-- **E:** Herramienta de Rotar (Gizmo de rotación)
-- **R:** Herramienta de Escalar (Gizmo de escala)
-- **G:** Alternar visualización de rejilla
-- **Delete / Supr:** Eliminar objeto o ensamblaje seleccionado
-- **Botón Izquierdo + Arrastrar:** Orbitar cámara 3D
-- **Botón Derecho + Arrastrar:** Desplazar cámara 3D (Pan)
-- **Rueda del Ratón:** Zoom in / Zoom out
-
----
-
-## 9. Despliegue en Producción (Vercel / Netlify)
-
-1. Enlaza el repositorio a Vercel o Netlify.
-2. Configura las variables de entorno del despliegue:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-3. Comando de compilación: `npm run build`
-4. Directorio de salida: `dist`
-5. En el panel de Supabase Auth, agrega la URL de producción a **Authentication → URL Configuration → Redirect URLs**.
-
----
-
-## 10. Limitaciones Conocidas y Alcance Técnico
-
-- **Cálculo estructural:** El constructor paramétrico genera geometrías de ingeniería proporcionales con estimaciones dimensionales. No realiza análisis de elementos finitos (FEA), cálculo de fatiga ni certificación legal de presiones API-650.
-- **Formatos CAD neutros:** Formatos como STEP o IGES requieren librerías OpenCASCADE WASM no incluidas en este paquete inicial; para intercambio se utilizan GLTF, STL y el formato nativo `.forma3d`.
+- **Q / W / E / R:** Herramientas de Selección, Mover, Rotar y Escalar
+- **G:** Alternar rejilla de trabajo
+- **Supr / Backspace:** Eliminar elemento seleccionado
+- **Arrastrar Clic Izquierdo:** Orbitar cámara 3D
+- **Arrastrar Clic Derecho:** Encuadre (Pan)
+- **Rueda del Ratón:** Zoom

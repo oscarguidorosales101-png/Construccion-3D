@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from './client';
 import type { UserProfile } from '../../types/auth';
+import { localBackendService } from '../api/localBackendService';
 
 export const authService = {
   isConfigured(): boolean {
@@ -7,100 +8,97 @@ export const authService = {
   },
 
   async signUp(email: string, password: string): Promise<{ user: UserProfile | null; error: string | null; confirmationRequired?: boolean }> {
-    if (!this.isConfigured() || !supabase) {
-      return {
-        user: null,
-        error: 'Supabase no está configurado. Conecta tus variables VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en el archivo .env',
-      };
-    }
+    if (this.isConfigured() && supabase) {
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
 
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
+        if (error) {
+          return { user: null, error: error.message };
+        }
 
-      if (error) {
-        return { user: null, error: error.message };
-      }
+        if (data.user) {
+          const confirmationRequired = !data.session;
+          return {
+            user: {
+              id: data.user.id,
+              email: data.user.email || email,
+              createdAt: data.user.created_at,
+            },
+            error: null,
+            confirmationRequired,
+          };
+        }
 
-      if (data.user) {
-        const confirmationRequired = !data.session;
+        return { user: null, error: 'No se pudo crear la cuenta de usuario.' };
+      } catch (err) {
         return {
-          user: {
-            id: data.user.id,
-            email: data.user.email || email,
-            createdAt: data.user.created_at,
-          },
-          error: null,
-          confirmationRequired,
+          user: null,
+          error: err instanceof Error ? err.message : 'Error inesperado durante el registro.',
         };
       }
-
-      return { user: null, error: 'No se pudo crear la cuenta de usuario.' };
-    } catch (err) {
-      return {
-        user: null,
-        error: err instanceof Error ? err.message : 'Error inesperado durante el registro.',
-      };
     }
+
+    // Local db.json backend fallback
+    return await localBackendService.register(email, password);
   },
 
   async signIn(email: string, password: string): Promise<{ user: UserProfile | null; error: string | null }> {
-    if (!this.isConfigured() || !supabase) {
-      return {
-        user: null,
-        error: 'Supabase no está configurado. Conecta tus credenciales de Supabase en .env para autenticación remota.',
-      };
-    }
+    if (this.isConfigured() && supabase) {
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+        if (error) {
+          return { user: null, error: error.message };
+        }
 
-      if (error) {
-        return { user: null, error: error.message };
-      }
+        if (data.user) {
+          return {
+            user: {
+              id: data.user.id,
+              email: data.user.email || email,
+              createdAt: data.user.created_at,
+            },
+            error: null,
+          };
+        }
 
-      if (data.user) {
+        return { user: null, error: 'Credenciales inválidas.' };
+      } catch (err) {
         return {
-          user: {
-            id: data.user.id,
-            email: data.user.email || email,
-            createdAt: data.user.created_at,
-          },
-          error: null,
+          user: null,
+          error: err instanceof Error ? err.message : 'Error durante el inicio de sesión.',
         };
       }
-
-      return { user: null, error: 'Credenciales inválidas.' };
-    } catch (err) {
-      return {
-        user: null,
-        error: err instanceof Error ? err.message : 'Error durante el inicio de sesión.',
-      };
     }
+
+    // Local db.json backend fallback
+    return await localBackendService.login(email, password);
   },
 
   async signOut(): Promise<{ error: string | null }> {
-    if (!this.isConfigured() || !supabase) {
-      return { error: null };
+    if (this.isConfigured() && supabase) {
+      try {
+        const { error } = await supabase.auth.signOut();
+        return { error: error ? error.message : null };
+      } catch (err) {
+        return { error: err instanceof Error ? err.message : 'Error al cerrar sesión.' };
+      }
     }
 
-    try {
-      const { error } = await supabase.auth.signOut();
-      return { error: error ? error.message : null };
-    } catch (err) {
-      return { error: err instanceof Error ? err.message : 'Error al cerrar sesión.' };
-    }
+    await localBackendService.logout();
+    return { error: null };
   },
 
   async resetPassword(email: string): Promise<{ error: string | null }> {
     if (!this.isConfigured() || !supabase) {
       return {
-        error: 'Supabase no está configurado. Requiere credenciales activas para el envío de correos.',
+        error: 'Para restablecimiento de contraseña vía email se requiere Supabase activo.',
       };
     }
 
@@ -115,22 +113,23 @@ export const authService = {
   },
 
   async getCurrentSessionUser(): Promise<UserProfile | null> {
-    if (!this.isConfigured() || !supabase) {
-      return null;
+    if (this.isConfigured() && supabase) {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data.session?.user) {
+          return {
+            id: data.session.user.id,
+            email: data.session.user.email || '',
+            createdAt: data.session.user.created_at,
+          };
+        }
+        return null;
+      } catch {
+        return null;
+      }
     }
 
-    try {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.user) {
-        return {
-          id: data.session.user.id,
-          email: data.session.user.email || '',
-          createdAt: data.session.user.created_at,
-        };
-      }
-      return null;
-    } catch {
-      return null;
-    }
+    return await localBackendService.getMe();
   },
 };
+

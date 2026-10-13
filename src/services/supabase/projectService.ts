@@ -1,12 +1,13 @@
 import { supabase, isSupabaseConfigured } from './client';
 import type { NativeProjectFormat, ProjectMetadata } from '../../types/project';
+import { localBackendService } from '../api/localBackendService';
 
 const LOCAL_STORAGE_KEY = 'forma3d_projects_v1';
 const CURRENT_ACTIVE_KEY = 'forma3d_active_project_id';
 
 export const projectService = {
   /**
-   * Save a project. If Supabase is available & user logged in, saves remotely; otherwise saves locally.
+   * Save a project. If Supabase is available saves remotely; otherwise saves to local backend (db.json) and local storage.
    */
   async saveProject(project: NativeProjectFormat, userId?: string): Promise<{ success: boolean; error?: string }> {
     try {
@@ -28,6 +29,9 @@ export const projectService = {
         if (error) {
           return { success: false, error: `Error al guardar en Supabase: ${error.message}. Guardado localmente.` };
         }
+      } else {
+        // Persist to local server (db.json)
+        await localBackendService.saveProject(project);
       }
 
       return { success: true };
@@ -37,7 +41,7 @@ export const projectService = {
   },
 
   /**
-   * List all projects available to the current user (locally + remotely if configured)
+   * List all projects available to the current user (locally + db.json + remotely if configured)
    */
   async listProjects(userId?: string): Promise<ProjectMetadata[]> {
     const localProjects = this.listLocalProjects();
@@ -71,7 +75,23 @@ export const projectService = {
           return merged;
         }
       } catch (e) {
-        console.warn('Could not fetch remote projects, falling back to local cache', e);
+        console.warn('Could not fetch remote projects, falling back to local backend', e);
+      }
+    } else {
+      // Fetch from local backend (db.json)
+      try {
+        const backendProjects = await localBackendService.listProjects();
+        if (backendProjects && backendProjects.length > 0) {
+          const merged = [...backendProjects];
+          localProjects.forEach((lp) => {
+            if (!merged.some((m) => m.id === lp.id)) {
+              merged.push(lp);
+            }
+          });
+          return merged;
+        }
+      } catch (e) {
+        console.warn('Could not fetch projects from local server', e);
       }
     }
 
@@ -96,6 +116,12 @@ export const projectService = {
         }
       } catch (e) {
         console.warn('Remote load failed, attempting local cache', e);
+      }
+    } else {
+      // Try local backend server
+      const backendProject = await localBackendService.loadProject(projectId);
+      if (backendProject) {
+        return { project: backendProject };
       }
     }
 
@@ -123,6 +149,8 @@ export const projectService = {
       } catch (err) {
         return { success: false, error: err instanceof Error ? err.message : 'Error al eliminar' };
       }
+    } else {
+      await localBackendService.deleteProject(projectId);
     }
 
     return { success: true };

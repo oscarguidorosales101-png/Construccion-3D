@@ -1,0 +1,102 @@
+{
+  "version": "1.0.0",
+  "users": [
+    {
+      "id": "usr-demo-arch",
+      "email": "arquitecto@forma3d.com",
+      "fullName": "Arq. Mateo Valenzuela",
+      "organization": "Estudio de Arquitectura e Ingeniería",
+      "passwordHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "salt": "a1b2c3d4e5f6",
+      "createdAt": "2026-10-12T10:00:00.000Z"
+    },
+    {
+      "id": "usr-1791850839979-68cafc05",
+      "email": "arquitecto1@forma3d.com",
+      "fullName": "Arq. Roberto Gomez",
+      "organization": "Estudio Técnico BIM",
+      "passwordHash": "b1c4171b8f5fec38e9db6ab82fc9e1477dac82a787be2a4f7cb52cba71e675e4",
+      "salt": "34c9a84c555545a53498576c06b6adec",
+      "createdAt": "2026-10-13T00:20:39.979Z"
+    },
+    {
+      "id": "usr-1791850840004-f74168b0",
+      "email": "ingeniero2@forma3d.com",
+      "fullName": "Ing. Carlos Mendez",
+      "organization": "Estudio Técnico BIM",
+      "passwordHash": "bfb90c1daabc8a00a8525070a3bc8776d5c70575702caf0576708e4c3716cb9d",
+      "salt": "11bee51845d35b7d6febd6e3e3b77d63",
+      "createdAt": "2026-10-13T00:20:40.004Z"
+    }
+  ],
+  "projects": [
+    {
+      "id": "proj-torre-30p",
+      "name": "Torre de Oficinas Corporativa (30 Pisos)",
+      "description": "Edificio corporativo de 30 niveles con planta de 36x30 m, altura 108 m, losas de hormigón armado, muro cortina y núcleo central.",
+      "projectType": "bim-building",
+      "ownerId": "usr-demo-arch",
+      "createdAt": "2026-10-12T12:00:00.000Z",
+      "updatedAt": "2026-10-12T18:00:00.000Z",
+      "version": "1.0.0"
+    },
+    {
+      "id": "p-user1-01",
+      "name": "Torre Residencial Alpha",
+      "updatedAt": "2026-10-13T00:20:40.018Z",
+      "ownerId": "usr-1791850839979-68cafc05",
+      "content": {
+        "formaVersion": "1.0.0",
+        "schemaVersion": 1,
+        "metadata": {
+          "id": "p-user1-01",
+          "name": "Torre Residencial Alpha",
+          "updatedAt": "2026-10-13T00:20:40.008Z"
+        },
+        "scene": {
+          "unit": "m",
+          "objects": {},
+          "rootIds": []
+        }
+      }
+    }
+  ],
+  "sessions": [
+    {
+      "token": "300c9d09-2129-4ee4-8e05-0d38a4c63cc5",
+      "userId": "usr-1791850839979-68cafc05",
+      "createdAt": "2026-10-13T00:20:39.979Z"
+    },
+    {
+      "token": "5ce9292e-d935-4a43-a365-0acd9c55f6ea",
+      "userId": "usr-1791850840004-f74168b0",
+      "createdAt": "2026-10-13T00:20:40.004Z"
+    }
+  ],
+  "documents": [
+    {
+      "id": "doc-sheet-01",
+      "projectId": "proj-torre-30p",
+      "sheetNumber": "ARQ-01",
+      "title": "Planta de Acceso & Elevación Norte",
+      "paperSize": "A1",
+      "status": "Aprobado para Coordinación"
+    },
+    {
+      "id": "doc-sheet-02",
+      "projectId": "proj-torre-30p",
+      "sheetNumber": "ARQ-02",
+      "title": "Planta Tipo, Sección Transversal A-A' & Cuadro de Áreas",
+      "paperSize": "A1",
+      "status": "Aprobado para Coordinación"
+    }
+  ],
+  "exports": [],
+  "settings": {
+    "defaultUnits": "m",
+    "defaultPaperSize": "A1",
+    "theme": "dark-cad",
+    "snapToGrid": true,
+    "gridSnapSize": 0.25
+  }
+}

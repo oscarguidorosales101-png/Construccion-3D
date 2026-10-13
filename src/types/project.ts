@@ -1,9 +1,11 @@
 import type { CADObjectNode, UnitSystem, ViewOrientation, RenderShadingMode } from './cad';
+import type { BIMBuildingModel, DrawingView2D, DocumentSheet } from './bim';
 
 export interface ProjectMetadata {
   id: string;
   name: string;
   description?: string;
+  projectType?: 'bim-building' | 'tank-industrial' | 'free-cad';
   createdAt: string;
   updatedAt: string;
   version: string; // e.g. "1.0.0"
@@ -30,5 +32,10 @@ export interface NativeProjectFormat {
       gridVisible: boolean;
       axesVisible: boolean;
     };
+  };
+  bim?: {
+    model: BIMBuildingModel;
+    views: DrawingView2D[];
+    sheets: DocumentSheet[];
   };
 }

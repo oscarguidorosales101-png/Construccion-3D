@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { PrimitivesTab } from './PrimitivesTab';
 import { TankBuilderTab } from './TankBuilderTab';
+import { BIMBuilderTab } from './BIMBuilderTab';
 import { OutlinerTab } from './OutlinerTab';
 import type { CADPrimitiveType, TankAssemblyParams, CADObjectNode } from '../../../types/cad';
-import { Box, Layers, ListTree, ChevronLeft, ChevronRight } from 'lucide-react';
+import type { Tower30StoryConfig } from '../../../engine3d/bim/towerGenerator';
+import { Box, Layers, ListTree, ChevronLeft, ChevronRight, Building2 } from 'lucide-react';
 
 interface LeftPanelProps {
   objects: Record<string, CADObjectNode>;
@@ -12,6 +14,11 @@ interface LeftPanelProps {
   onSelect: (id: string | null) => void;
   onAddPrimitive: (type: CADPrimitiveType) => void;
   onBuildTank: (params: TankAssemblyParams) => void;
+  onGenerateTower: (config: Tower30StoryConfig) => void;
+  onOpenDocumentation: () => void;
+  onExportPDF: () => void;
+  onExportDXF: () => void;
+  onExportIFC: () => void;
   onToggleVisibility: (id: string) => void;
   onToggleLock: (id: string) => void;
   onDeleteObject: (id: string) => void;
@@ -26,13 +33,18 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({
   onSelect,
   onAddPrimitive,
   onBuildTank,
+  onGenerateTower,
+  onOpenDocumentation,
+  onExportPDF,
+  onExportDXF,
+  onExportIFC,
   onToggleVisibility,
   onToggleLock,
   onDeleteObject,
   onDuplicateObject,
   onRenameObject,
 }) => {
-  const [activeTab, setActiveTab] = useState<'primitives' | 'tank' | 'outliner'>('tank');
+  const [activeTab, setActiveTab] = useState<'bim' | 'tank' | 'primitives' | 'outliner'>('bim');
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   // If selected object is a tank-assembly or subcomponent of tank, get its params
@@ -80,7 +92,7 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({
     <aside
       className="cad-panel"
       style={{
-        width: '320px',
+        width: '330px',
         borderRight: '1px solid var(--border-subtle)',
         borderLeft: 'none',
         borderTop: 'none',
@@ -104,6 +116,13 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({
       {/* Tabs */}
       <div className="panel-tabs">
         <button
+          className={`panel-tab ${activeTab === 'bim' ? 'active' : ''}`}
+          onClick={() => setActiveTab('bim')}
+        >
+          <Building2 size={13} />
+          <span>Torre BIM</span>
+        </button>
+        <button
           className={`panel-tab ${activeTab === 'tank' ? 'active' : ''}`}
           onClick={() => setActiveTab('tank')}
         >
@@ -122,12 +141,22 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({
           onClick={() => setActiveTab('outliner')}
         >
           <ListTree size={13} />
-          <span>Árbol CAD ({rootIds.length})</span>
+          <span>Árbol ({rootIds.length})</span>
         </button>
       </div>
 
       {/* Panel Body */}
       <div className="panel-content">
+        {activeTab === 'bim' && (
+          <BIMBuilderTab
+            onGenerateTower={onGenerateTower}
+            onOpenDocumentation={onOpenDocumentation}
+            onExportPDF={onExportPDF}
+            onExportDXF={onExportDXF}
+            onExportIFC={onExportIFC}
+            totalStoreys={30}
+          />
+        )}
         {activeTab === 'tank' && (
           <TankBuilderTab
             initialParams={activeTankParams}
